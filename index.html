@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Electron App com Auto-Update</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4CAF50;
+            display: inline-block;
+        }
+        .version {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .status-area {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 5px;
+            min-height: 100px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background-color: #4CAF50;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚡ Electron App com Auto-Update</h1>
+        <div class="version" id="version">Versão: carregando...</div>
+        
+        <div>
+            <button id="checkBtn">🔍 Verificar Atualizações</button>
+            <button id="downloadBtn" disabled>📥 Baixar Update</button>
+            <button id="installBtn" disabled>🔄 Reiniciar e Instalar</button>
+        </div>
+        
+        <div class="status-area" id="statusArea">
+            Status: Aguardando ações...
+        </div>
+        <div class="progress-bar" id="progressBar" style="display:none;">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+    </div>
+
+    <script>
+        // Referências DOM
+        const checkBtn = document.getElementById('checkBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const installBtn = document.getElementById('installBtn');
+        const statusArea = document.getElementById('statusArea');
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.getElementById('progressFill');
+        const versionSpan = document.getElementById('version');
+
+        let updateReady = false;
+
+        // Exibe a versão do app (via Electron)
+        try {
+            const electron = require('electron');
+            versionSpan.textContent = `Versão: ${electron.app.getVersion()}`;
+        } catch (e) {
+            versionSpan.textContent = 'Versão: Desktop App';
+        }
+
+        function addStatus(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            statusArea.innerHTML += `[${timestamp}] ${message}\n`;
+            statusArea.scrollTop = statusArea.scrollHeight;
+        }
+
+        function updateProgress(percent) {
+            if (percent > 0) {
+                progressBar.style.display = 'block';
+                progressFill.style.width = `${percent}%`;
+                if (percent >= 100) {
+                    setTimeout(() => {
+                        progressBar.style.display = 'none';
+                    }, 1000);
+                }
+            }
+        }
+
+        // Listeners dos botões
+        checkBtn.onclick = () => {
+            addStatus('🔍 Verificando atualizações...');
+            window.electronAPI.checkForUpdates();
+        };
+
+        downloadBtn.onclick = () => {
+            addStatus('📥 Iniciando download da atualização...');
+            window.electronAPI.downloadUpdate();
+        };
+
+        installBtn.onclick = () => {
+            addStatus('🔄 Reiniciando para instalar a atualização...');
+            window.electronAPI.installUpdate();
+        };
+
+        // Escuta eventos do Main Process
+        window.electronAPI.onUpdateStatus((status) => {
+            addStatus(status.message);
+            
+            if (status.data) {
+                if (status.data.percent) {
+                    updateProgress(status.data.percent);
+                }
+                
+                if (status.message.includes('disponível')) {
+                    downloadBtn.disabled = false;
+                    installBtn.disabled = true;
+                }
+                
+                if (status.message.includes('Baixado')) {
+                    downloadBtn.disabled = true;
+                    installBtn.disabled = false;
+                    updateReady = true;
+                }
+            }
+        });
+
+        addStatus('✅ App carregado! Use os botões para gerenciar atualizações.');
+    </script>
+</body>
+</html>
