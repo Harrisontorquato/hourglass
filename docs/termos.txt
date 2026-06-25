@@ -1,0 +1,179 @@
+           TERMOS DE USO – HOURGLASS
+
+Última atualização: 07/06/2026
+
+           1. ACEITAÇÃO DOS TERMOS
+
+Ao instalar, acessar ou utilizar o software Hourglass ("Software"), o Usuário declara ter lido, compreendido e concordado integralmente com estes Termos de Uso.
+
+Caso não concorde com qualquer disposição destes Termos, o Usuário não deverá utilizar o Software.
+
+O aceite eletrônico registrado pelo sistema possui validade jurídica para comprovação da concordância do Usuário com estes Termos.
+
+---
+
+           2. DEFINIÇÕES
+
+Para fins destes Termos:
+
+* "Hourglass" ou "Software" refere-se ao aplicativo de automação e gerenciamento de atendimento via WhatsApp.
+* "Usuário" refere-se à pessoa física ou jurídica que utiliza o Software.
+* "Desenvolvedor" refere-se ao responsável legal pelo Software.
+* "WhatsApp" refere-se ao serviço de mensagens disponibilizado pela Meta Platforms, Inc.
+* "Serviços de Terceiros" referem-se a plataformas externas utilizadas pelo Software, incluindo Firebase, Google Analytics e outras integrações necessárias ao funcionamento.
+
+---
+
+           3. OBJETO
+
+O Hourglass é um software destinado à automação, organização e gerenciamento de interações realizadas por meio do WhatsApp.
+
+Entre suas funcionalidades podem estar incluídas:
+
+* gerenciamento de contatos;
+* categorização de clientes;
+* automação de respostas;
+* utilização de palavras-chave;
+* sinalização e classificação de contatos;
+* monitoramento de interações;
+* outras funcionalidades disponibilizadas em futuras versões.
+
+---
+
+           4. LICENÇA DE USO
+
+O Desenvolvedor concede ao Usuário uma licença limitada, revogável, não exclusiva, intransferível e não sublicenciável para utilização do Software.
+
+Esta licença não transfere ao Usuário qualquer direito de propriedade intelectual sobre o Software.
+
+---
+
+           5. PROPRIEDADE INTELECTUAL
+
+Todos os direitos relacionados ao Hourglass permanecem pertencentes ao Desenvolvedor.
+
+É proibido:
+
+* copiar o Software sem autorização;
+* redistribuir versões modificadas;
+* vender, sublicenciar ou explorar comercialmente o Software sem autorização;
+* remover avisos de direitos autorais;
+* realizar engenharia reversa quando vedada pela legislação aplicável.
+
+---
+
+           6. USO DO WHATSAPP E RESPONSABILIDADE DO USUÁRIO
+
+O Hourglass utiliza mecanismos de integração com o WhatsApp por meio de tecnologias e bibliotecas de terceiros.
+
+O Usuário reconhece que:
+
+* o Desenvolvedor não possui qualquer vínculo com a Meta Platforms, Inc. ou WhatsApp LLC;
+* o uso do Software poderá estar sujeito às políticas e termos do WhatsApp;
+* alterações realizadas pelo WhatsApp poderão afetar parcial ou totalmente o funcionamento do Software;
+* bloqueios, suspensões, restrições ou encerramentos de contas do WhatsApp decorrentes do uso do Software são de exclusiva responsabilidade do Usuário.
+
+O Desenvolvedor não garante compatibilidade permanente com o WhatsApp.
+
+---
+
+           7. CONDUTAS PROIBIDAS
+
+É proibido utilizar o Software para:
+
+* envio de spam;
+* práticas fraudulentas;
+* golpes;
+* atividades ilegais;
+* coleta indevida de dados pessoais;
+* violação de direitos de terceiros;
+* envio de conteúdo ilícito, ofensivo ou discriminatório.
+
+O descumprimento desta cláusula poderá resultar na suspensão ou encerramento da licença de uso.
+
+---
+
+           8. DADOS E RESPONSABILIDADE PELOS CONTEÚDOS
+
+O Usuário é o único responsável pelos dados inseridos, processados ou armazenados por meio do Software.
+
+O Desenvolvedor não realiza monitoramento prévio das mensagens, contatos ou automações configuradas pelo Usuário.
+
+O Usuário declara possuir base legal adequada para o tratamento dos dados pessoais de terceiros eventualmente processados por meio do Software.
+
+---
+
+           9. BACKUP E SEGURANÇA
+
+O Usuário é responsável por manter cópias de segurança (backup) de seus dados.
+
+O Desenvolvedor não se responsabiliza por:
+
+* perda de dados;
+* corrupção de arquivos;
+* falhas de hardware;
+* falhas do sistema operacional;
+* ações de terceiros;
+* problemas decorrentes de vírus ou softwares maliciosos.
+
+---
+
+           10. DISPONIBILIDADE
+
+O Software é disponibilizado no estado em que se encontra ("as is").
+
+O Desenvolvedor não garante:
+
+* disponibilidade contínua;
+* ausência de falhas;
+* funcionamento ininterrupto;
+* compatibilidade com todas as versões do WhatsApp ou sistemas operacionais.
+
+Atualizações, correções ou melhorias poderão ser disponibilizadas a exclusivo critério do Desenvolvedor.
+
+---
+
+           11. SERVIÇOS DE TERCEIROS
+
+O funcionamento do Software poderá depender de serviços de terceiros.
+
+O Desenvolvedor não se responsabiliza por indisponibilidades, alterações, limitações ou encerramentos desses serviços.
+
+---
+
+           12. LIMITAÇÃO DE RESPONSABILIDADE
+
+Na máxima extensão permitida pela legislação aplicável, o Desenvolvedor não será responsável por:
+
+* perda de lucros;
+* perda de clientes;
+* perda de oportunidades comerciais;
+* interrupções de atividades;
+* perda de dados;
+* danos indiretos;
+* danos emergentes;
+* danos consequenciais.
+
+A responsabilidade do Desenvolvedor, quando existente, ficará limitada ao valor efetivamente pago pelo Usuário pelo Software nos 12 meses anteriores ao evento que originou a reclamação.
+
+---
+
+           13. ALTERAÇÕES DOS TERMOS
+
+Estes Termos poderão ser modificados a qualquer momento.
+
+Novas versões poderão exigir nova aceitação pelo Usuário para continuidade do uso do Software.
+
+---
+
+           14. ENCERRAMENTO
+
+O Desenvolvedor poderá encerrar, suspender ou restringir o acesso ao Software em caso de violação destes Termos.
+
+---
+
+           15. LEGISLAÇÃO APLICÁVEL
+
+Estes Termos serão regidos pelas leis da República Federativa do Brasil.
+
+Fica eleito o foro competente conforme a legislação brasileira aplicável, ressalvadas as hipóteses previstas no Código de Defesa do Consumidor.

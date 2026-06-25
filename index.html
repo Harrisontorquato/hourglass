@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Hourglass - Login</title>
+    <link rel="stylesheet" href="css/index.css">
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-box">
+
+            <!-- ── Formulário principal ── -->
+            <div id="formSection">
+                <h1>Hourglass</h1>
+                <p class="subtitle" id="subtitle">Faça login para continuar</p>
+
+                <form id="loginForm">
+
+                    <div class="form-group" id="nameGroup" style="display:none;">
+                        <label>Nome Completo</label>
+                        <input type="text" id="fullName" placeholder="Digite seu nome completo">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="email" required placeholder="seu@email.com">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Senha</label>
+                        <input type="password" id="password" required placeholder="••••••••">
+                    </div>
+                    <div class="forgot-password">
+                        <a id="forgotPasswordLink">Esqueci minha senha</a>
+                    </div>
+
+                    <div class="form-group" id="confirmPasswordGroup" style="display:none;">
+                        <label>Confirmar Senha</label>
+                        <input type="password" id="confirmPassword" placeholder="••••••••">
+                    </div>
+
+                    <button type="submit" id="submitBtn">Entrar</button>
+                </form>
+
+                <div class="toggle-mode">
+                    <span id="toggleText">Não tem uma conta?</span>
+                    <a id="toggleLink"> Criar conta</a>
+                </div>
+
+                <div id="message" class="message"></div>
+            </div>
+
+            <!-- ── Tela de recuperação de senha (Esqueci minha senha) ── -->
+            <div class="forgot-screen" id="forgotSection" style="display:none;">
+                <h2>Recuperar senha</h2>
+                <p>Digite seu e-mail para receber o link de redefinição</p>
+
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="forgotEmail" placeholder="seu@email.com">
+                </div>
+
+                <button id="sendResetEmailBtn">Enviar email</button>
+                <button class="btn-secondary" id="backToLoginBtn">← Voltar ao login</button>
+
+                <div id="forgotMessage" class="message"></div>
+            </div>
+
+            <!-- ── Tela de aguardando verificação de email ── -->
+            <div class="verify-screen" id="verifySection">
+                <span class="verify-icon">✉️</span>
+                <h2>Verifique seu email</h2>
+                <p>Enviamos um link de verificação para</p>
+                <p><strong id="verifyEmail"></strong></p>
+                <p style="margin-top:10px;">Abra o email e clique no link antes de continuar.
+                    Verifique também a pasta de spam.</p>
+
+                <div class="verify-actions">
+                    <!-- Polling: verifica se o email foi confirmado -->
+                    <button id="checkVerifiedBtn">✅ Já verifiquei meu email</button>
+
+                    <!-- Reenvia o email de verificação (com cooldown) -->
+                    <button class="btn-secondary" id="resendEmailBtn">Reenviar email</button>
+                    <span class="resend-timer" id="resendTimer"></span>
+
+                    <hr class="divider">
+
+                    <!-- Volta para o formulário e deleta a conta pendente -->
+                    <button class="btn-secondary" id="cancelVerifyBtn">← Voltar ao login</button>
+                </div>
+
+                <div id="verifyMessage" class="message"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, deleteUser, reload, sendPasswordResetEmail } from "./js/firebase.js";
+
+        // ── Estado ───────────────────────────────────────────────────────────
+        let isLoginMode = true;
+        let pendingUser = null;
+        let pollingInterval = null;
+        let resendCooldown = null;
+        let resendSeconds = 0;
+
+        // ── Elementos ────────────────────────────────────────────────────────
+        const formSection = document.getElementById('formSection');
+        const forgotSection = document.getElementById('forgotSection');
+        const verifySection = document.getElementById('verifySection');
+        const loginForm = document.getElementById('loginForm');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const nameGroup = document.getElementById('nameGroup');
+        const fullNameInput = document.getElementById('fullName');
+        const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        const submitBtn = document.getElementById('submitBtn');
+        const toggleLink = document.getElementById('toggleLink');
+        const toggleText = document.getElementById('toggleText');
+        const subtitle = document.getElementById('subtitle');
+        const messageDiv = document.getElementById('message');
+        const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+        const forgotEmailInput = document.getElementById('forgotEmail');
+        const sendResetEmailBtn = document.getElementById('sendResetEmailBtn');
+        const backToLoginBtn = document.getElementById('backToLoginBtn');
+        const forgotMessageDiv = document.getElementById('forgotMessage');
+
+        const verifyEmailSpan = document.getElementById('verifyEmail');
+        const checkVerifiedBtn = document.getElementById('checkVerifiedBtn');
+        const resendEmailBtn = document.getElementById('resendEmailBtn');
+        const resendTimerSpan = document.getElementById('resendTimer');
+        const cancelVerifyBtn = document.getElementById('cancelVerifyBtn');
+        const verifyMessageDiv = document.getElementById('verifyMessage');
+
+        // ── Helpers ──────────────────────────────────────────────────────────
+        function isValidEmailDomain(email) {
+            const allowed = ['@gmail.com', '@outlook.com', '@hotmail.com', '@yahoo.com', '@yahoo.com.br', '@icloud.com'];
+            return allowed.some(d => email.toLowerCase().endsWith(d));
+        }
+
+        function showMessage(msg, type = 'error', target = messageDiv) {
+            target.textContent = msg;
+            target.className = `message ${type}`;
+            target.style.display = 'block';
+            setTimeout(() => { target.style.display = 'none'; }, 6000);
+        }
+
+        function setLoading(loading) {
+            submitBtn.disabled = loading;
+            submitBtn.innerHTML = loading
+                ? '<span class="loading"></span> Aguarde...'
+                : (isLoginMode ? 'Entrar' : 'Criar Conta');
+        }
+
+        // ── Modo login / cadastro ────────────────────────────────────────────
+        toggleLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            isLoginMode = !isLoginMode;
+
+            if (isLoginMode) {
+                toggleLink.textContent = ' Criar conta';
+                toggleText.textContent = 'Não tem uma conta?';
+                submitBtn.textContent = 'Entrar';
+                subtitle.textContent = 'Faça login para continuar';
+                nameGroup.style.display = 'none';
+                confirmPasswordGroup.style.display = 'none';
+                fullNameInput.required = false;
+                confirmPasswordInput.required = false;
+                const forgotPasswordDiv = document.querySelector('.forgot-password');
+                if (forgotPasswordDiv) {
+                    forgotPasswordDiv.style.display = 'block';
+                }
+            } else {
+                toggleLink.textContent = ' Fazer login';
+                toggleText.textContent = 'Já tem uma conta?';
+                submitBtn.textContent = 'Criar Conta';
+                subtitle.textContent = 'Crie sua conta para começar';
+                nameGroup.style.display = 'block';
+                confirmPasswordGroup.style.display = 'block';
+                fullNameInput.required = true;
+                confirmPasswordInput.required = true;
+                const forgotPasswordDiv = document.querySelector('.forgot-password');
+                if (forgotPasswordDiv) {
+                    forgotPasswordDiv.style.display = 'none';
+                }
+            }
+
+            messageDiv.style.display = 'none';
+        });
+
+        // ── Esqueci minha senha ──────────────────────────────────────────────
+        forgotPasswordLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            formSection.style.display = 'none';
+            forgotSection.style.display = 'block';
+            forgotEmailInput.value = emailInput.value; // Preenche com o email atual se existir
+        });
+
+        backToLoginBtn.addEventListener('click', () => {
+            forgotSection.style.display = 'none';
+            formSection.style.display = 'block';
+            forgotMessageDiv.style.display = 'none';
+        });
+
+        sendResetEmailBtn.addEventListener('click', async () => {
+            const email = forgotEmailInput.value.trim();
+
+            if (!email) {
+                showMessage('Digite seu e-mail.', 'error', forgotMessageDiv);
+                return;
+            }
+
+            sendResetEmailBtn.disabled = true;
+            sendResetEmailBtn.innerHTML = '<span class="loading"></span> Enviando...';
+
+            try {
+                await sendPasswordResetEmail(auth, email);
+                showMessage('E-mail de recuperação enviado! Verifique sua caixa de entrada.', 'success', forgotMessageDiv);
+
+                // Volta para a tela de login após 2 segundos
+                setTimeout(() => {
+                    forgotSection.style.display = 'none';
+                    formSection.style.display = 'block';
+                    forgotMessageDiv.style.display = 'none';
+                    emailInput.value = email; // Preenche o email no formulário de login
+                }, 2000);
+
+            } catch (err) {
+                // Por segurança, o Firebase não revela se o e-mail existe ou não
+                showMessage('Se este e-mail estiver cadastrado, você receberá um link de recuperação.', 'info', forgotMessageDiv);
+
+                setTimeout(() => {
+                    forgotSection.style.display = 'none';
+                    formSection.style.display = 'block';
+                    forgotMessageDiv.style.display = 'none';
+                }, 2000);
+            } finally {
+                sendResetEmailBtn.disabled = false;
+                sendResetEmailBtn.innerHTML = 'Enviar email';
+            }
+        });
+
+        // ── Submit ───────────────────────────────────────────────────────────
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+
+            if (!email || !password) {
+                showMessage('Preencha todos os campos.'); return;
+            }
+
+            if (!isLoginMode) {
+                const fullName = fullNameInput.value.trim();
+                const confirmPassword = confirmPasswordInput.value;
+
+                if (!fullName) { showMessage('Preencha seu nome completo.'); return; }
+                if (!isValidEmailDomain(email)) {
+                    showMessage('Use um email @gmail.com, @outlook.com, @hotmail.com, @yahoo.com, @yahoo.com.br ou @icloud.com'); return;
+                }
+                if (password !== confirmPassword) { showMessage('As senhas não coincidem.'); return; }
+                if (password.length < 6) { showMessage('A senha deve ter pelo menos 6 caracteres.'); return; }
+
+                setLoading(true);
+                try {
+                    const credential = await createUserWithEmailAndPassword(auth, email, password);
+                    pendingUser = credential.user;
+                    await sendEmailVerification(pendingUser);
+                    showVerifyScreen(email);
+                } catch (err) {
+                    handleAuthError(err);
+                } finally {
+                    setLoading(false);
+                }
+
+            } else {
+                setLoading(true);
+                try {
+                    const credential = await signInWithEmailAndPassword(auth, email, password);
+                    const user = credential.user;
+
+                    if (!user.emailVerified) {
+                        pendingUser = user;
+                        await sendEmailVerification(pendingUser);
+                        await signOut(auth);
+                        showMessage('Seu email ainda não foi verificado. Enviamos um novo link — verifique sua caixa de entrada.', 'info');
+                        return;
+                    }
+
+                    showMessage('Login realizado com sucesso!', 'success');
+                    setTimeout(() => window.electronAPI.navigateToHome(), 1200);
+
+                } catch (err) {
+                    handleAuthError(err);
+                } finally {
+                    setLoading(false);
+                }
+            }
+        });
+
+        // ── Tela de verificação ──────────────────────────────────────────────
+        function showVerifyScreen(email) {
+            formSection.style.display = 'none';
+            verifySection.classList.add('active');
+            verifyEmailSpan.textContent = email;
+            startPolling();
+            startResendCooldown(60);
+        }
+
+        function hideVerifyScreen() {
+            verifySection.classList.remove('active');
+            formSection.style.display = 'block';
+            stopPolling();
+            clearResendCooldown();
+        }
+
+        // ── Polling ──────────────────────────────────────────────────────────
+        function startPolling() {
+            stopPolling();
+            pollingInterval = setInterval(async () => {
+                if (!pendingUser) { stopPolling(); return; }
+                try {
+                    await reload(pendingUser);
+                    if (pendingUser.emailVerified) {
+                        stopPolling();
+                        onEmailVerified();
+                    }
+                } catch (_) { }
+            }, 3000);
+        }
+
+        function stopPolling() {
+            if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
+        }
+
+        async function onEmailVerified() {
+            showMessage('Email verificado com sucesso! Redirecionando…', 'success', verifyMessageDiv);
+            setTimeout(() => window.electronAPI.navigateToHome(), 1500);
+        }
+
+        // ── Botão "Já verifiquei" ────────────────────────────────────────────
+        checkVerifiedBtn.addEventListener('click', async () => {
+            if (!pendingUser) return;
+            checkVerifiedBtn.disabled = true;
+            checkVerifiedBtn.innerHTML = '<span class="loading"></span> Verificando…';
+
+            try {
+                await reload(pendingUser);
+                if (pendingUser.emailVerified) {
+                    stopPolling();
+                    onEmailVerified();
+                } else {
+                    showMessage('Email ainda não verificado. Cheque sua caixa de entrada.', 'info', verifyMessageDiv);
+                }
+            } catch (_) {
+                showMessage('Erro ao verificar. Tente novamente.', 'error', verifyMessageDiv);
+            } finally {
+                checkVerifiedBtn.disabled = false;
+                checkVerifiedBtn.textContent = '✅ Já verifiquei meu email';
+            }
+        });
+
+        // ── Reenviar email ────────────────────────────────────────────────────
+        resendEmailBtn.addEventListener('click', async () => {
+            if (!pendingUser || resendSeconds > 0) return;
+            resendEmailBtn.disabled = true;
+
+            try {
+                await sendEmailVerification(pendingUser);
+                showMessage('Email reenviado! Verifique sua caixa de entrada.', 'success', verifyMessageDiv);
+                startResendCooldown(60);
+            } catch (err) {
+                if (err.code === 'auth/too-many-requests') {
+                    showMessage('Muitas tentativas. Aguarde alguns minutos.', 'error', verifyMessageDiv);
+                    startResendCooldown(120);
+                } else {
+                    showMessage('Erro ao reenviar. Tente novamente.', 'error', verifyMessageDiv);
+                    resendEmailBtn.disabled = false;
+                }
+            }
+        });
+
+        // ── Cooldown ──────────────────────────────────────────────────────────
+        function startResendCooldown(seconds) {
+            resendSeconds = seconds;
+            resendEmailBtn.disabled = true;
+            updateResendTimer();
+            resendCooldown = setInterval(() => {
+                resendSeconds--;
+                updateResendTimer();
+                if (resendSeconds <= 0) clearResendCooldown();
+            }, 1000);
+        }
+
+        function updateResendTimer() {
+            if (resendSeconds > 0) {
+                resendTimerSpan.textContent = `Aguarde ${resendSeconds}s para reenviar`;
+            } else {
+                resendTimerSpan.textContent = '';
+                resendEmailBtn.disabled = false;
+            }
+        }
+
+        function clearResendCooldown() {
+            if (resendCooldown) { clearInterval(resendCooldown); resendCooldown = null; }
+            resendSeconds = 0;
+            updateResendTimer();
+        }
+
+        // ── Cancelar ──────────────────────────────────────────────────────────
+        cancelVerifyBtn.addEventListener('click', async () => {
+            stopPolling();
+            clearResendCooldown();
+            if (pendingUser) {
+                try { await deleteUser(pendingUser); } catch (_) { }
+                pendingUser = null;
+            }
+            hideVerifyScreen();
+            verifyMessageDiv.style.display = 'none';
+            messageDiv.style.display = 'none';
+        });
+
+        // ── Erros ─────────────────────────────────────────────────────────────
+        function handleAuthError(err) {
+            const map = {
+                'auth/email-already-in-use': 'Este email já está em uso. Faça login ou use outro email.',
+                'auth/weak-password': 'Senha muito fraca. Use pelo menos 6 caracteres.',
+                'auth/invalid-email': 'Email inválido.',
+                'auth/user-not-found': 'Usuário não encontrado. Verifique o email ou crie uma conta.',
+                'auth/wrong-password': 'Senha incorreta. Tente novamente.',
+                'auth/invalid-credential': 'Email ou senha incorretos.',
+                'auth/too-many-requests': 'Muitas tentativas. Tente novamente mais tarde.',
+                'auth/network-request-failed': 'Erro de rede. Verifique sua conexão com a internet.',
+            };
+            showMessage(map[err.code] || `Erro: ${err.message}`);
+        }
+
+        console.log('✅ Hourglass — autenticação com verificação oficial Firebase pronta.');
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Hourglass - Sinalizadores</title>
+    <link rel="stylesheet" href="css/sinalizadores.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <div class="header">
+            <button id="backBtn" class="back-btn">← Voltar</button>
+            <h1>🏷️ Gerenciador de Sinalizadores</h1>
+        </div>
+
+        <div class="bot-selector">
+            <label>Selecione o Bot:</label>
+            <select id="botSelect">
+                <option value="">Carregando bots...</option>
+            </select>
+        </div>
+
+        <div class="kanban-container" id="kanbanContainer">
+            <div class="loading">Selecione um bot para visualizar os sinalizadores</div>
+        </div>
+    </div>
+
+    <script type="module">
+        console.log('Inicializando página de Sinalizadores...');
+        import { confirmar } from './js/alert.js';
+        let currentBotId = null;
+        let allSinalizadores = [];
+        let draggedColumn = null;
+
+        // Elementos DOM
+        const botSelect = document.getElementById('botSelect');
+        const kanbanContainer = document.getElementById('kanbanContainer');
+        const backBtn = document.getElementById('backBtn');
+
+        // ─────────────────────────────────────────────
+        // NAVEGAÇÃO
+        // ─────────────────────────────────────────────
+
+        backBtn.onclick = () => {
+            window.electronAPI.home();
+        };
+
+        // ─────────────────────────────────────────────
+        // NOTIFICAÇÕES
+        // ─────────────────────────────────────────────
+
+        function mostrarNotificacao(mensagem, tipo = 'success') {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.style.background = tipo === 'success' ? '#4CAF50' : '#f44336';
+            notification.style.color = 'white';
+            notification.style.padding = '12px 20px';
+            notification.style.borderRadius = '8px';
+            notification.style.position = 'fixed';
+            notification.style.bottom = '20px';
+            notification.style.right = '20px';
+            notification.style.zIndex = '10000';
+            notification.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+            notification.style.fontWeight = 'bold';
+            notification.textContent = mensagem;
+
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Adicionar CSS para animações
+        const style = document.createElement('style');
+        style.textContent = `
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+    
+    @keyframes slideIn {
+        from {
+            transform: translateX(-20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    .notification {
+        animation: slideIn 0.3s ease;
+    }
+`;
+        document.head.appendChild(style);
+
+        // ─────────────────────────────────────────────
+        // DRAG AND DROP PARA COLUNAS
+        // ─────────────────────────────────────────────
+
+        function makeColumnsDraggable() {
+            const columns = document.querySelectorAll('.column');
+
+            columns.forEach(column => {
+                column.setAttribute('draggable', 'true');
+
+                // Remover listeners antigos para evitar duplicação
+                column.removeEventListener('dragstart', handleDragStart);
+                column.removeEventListener('dragover', handleDragOver);
+                column.removeEventListener('dragleave', handleDragLeave);
+                column.removeEventListener('drop', handleDrop);
+                column.removeEventListener('dragend', handleDragEnd);
+
+                // Adicionar novos listeners
+                column.addEventListener('dragstart', handleDragStart);
+                column.addEventListener('dragover', handleDragOver);
+                column.addEventListener('dragleave', handleDragLeave);
+                column.addEventListener('drop', handleDrop);
+                column.addEventListener('dragend', handleDragEnd);
+            });
+        }
+
+        function handleDragStart(e) {
+            draggedColumn = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            // Pega o nome do sinalizador sem o "⋮⋮"
+            const sinalizador = this.getAttribute('data-sinalizador') || this.querySelector('.column-header h3').textContent.replace(/^⋮⋮\s*/, '');
+            e.dataTransfer.setData('text/plain', sinalizador);
+            // Necessário para Firefox
+            e.dataTransfer.setDragImage(this, 20, 20);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+
+            // 🔥 CRUCIAL: Encontrar a coluna ANCESTRAL
+            const column = e.currentTarget.closest('.column');
+            if (column && column !== draggedColumn) {
+                column.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(e) {
+            const column = e.currentTarget.closest('.column');
+            if (column) {
+                column.classList.remove('drag-over');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+
+            // Encontrar a coluna alvo (pode ser filho)
+            const targetColumn = e.currentTarget.closest('.column');
+            if (!targetColumn) return;
+
+            targetColumn.classList.remove('drag-over');
+
+            if (!draggedColumn || draggedColumn === targetColumn) return;
+
+            const board = document.querySelector('.kanban-board');
+            const columns = Array.from(board.children);
+            const draggedIndex = columns.indexOf(draggedColumn);
+            const targetIndex = columns.indexOf(targetColumn);
+
+            if (draggedIndex < targetIndex) {
+                board.insertBefore(draggedColumn, targetColumn.nextSibling);
+            } else {
+                board.insertBefore(draggedColumn, targetColumn);
+            }
+
+            saveColumnOrder();
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            // Remover classe drag-over de todas as colunas
+            document.querySelectorAll('.column').forEach(col => {
+                col.classList.remove('drag-over');
+            });
+            draggedColumn = null;
+        }
+
+        async function saveColumnOrder() {
+            const columns = document.querySelectorAll('.column');
+            // 🔥 CORREÇÃO: Usar o atributo data-sinalizador para salvar o nome limpo
+            const novaOrdem = Array.from(columns).map(col =>
+                col.getAttribute('data-sinalizador') || col.querySelector('.column-header h3').textContent.replace(/^⋮⋮\s*/, '')
+            );
+
+            console.log('💾 Salvando nova ordem (limpa):', novaOrdem);
+
+            try {
+                if (window.electronAPI && window.electronAPI.botUpdateSinalizadoresOrdem) {
+                    const result = await window.electronAPI.botUpdateSinalizadoresOrdem(currentBotId, novaOrdem);
+                    if (result && result.success) {
+                        mostrarNotificacao('✅ Ordem das colunas salva!', 'success');
+                    } else {
+                        mostrarNotificacao('⚠️ Erro ao salvar ordem', 'error');
+                    }
+                } else {
+                    console.warn('API botUpdateSinalizadoresOrdem não disponível');
+                    mostrarNotificacao('⚠️ API não disponível para salvar ordem', 'warning');
+                }
+            } catch (error) {
+                console.error('Erro ao salvar ordem:', error);
+                mostrarNotificacao('❌ Erro ao salvar ordem', 'error');
+            }
+        }
+
+        function carregarOrdemSalva(sinalizadoresLabels, bot) {
+            // Tentar carregar do bot config (JSON) primeiro
+            if (bot && bot.ordemSinalizadores && Array.isArray(bot.ordemSinalizadores)) {
+                let ordemSalva = [...bot.ordemSinalizadores];
+                console.log('📦 Ordem carregada do JSON (original):', ordemSalva);
+
+                // 🔥 CORREÇÃO: Remover qualquer "⋮⋮" da frente se existir
+                ordemSalva = ordemSalva.map(label => label.replace(/^⋮⋮\s*/, ''));
+                console.log('📦 Ordem após limpar "⋮⋮":', ordemSalva);
+
+                // Filtrar apenas os sinalizadores que existem atualmente
+                const ordemFiltrada = ordemSalva.filter(label => sinalizadoresLabels.includes(label));
+                console.log('📦 Ordem filtrada (existentes):', ordemFiltrada);
+
+                // Adicionar sinalizadores novos que não estão na ordem salva
+                const novosSinalizadores = sinalizadoresLabels.filter(label => !ordemSalva.includes(label));
+                console.log('📦 Novos sinalizadores:', novosSinalizadores);
+
+                const resultado = [...ordemFiltrada, ...novosSinalizadores];
+                console.log('📦 Ordem final aplicada:', resultado);
+
+                return resultado;
+            }
+
+            // Fallback: ordem original
+            console.log('📦 Usando ordem original (sem ordem salva)');
+            return sinalizadoresLabels;
+        }
+
+        // ─────────────────────────────────────────────
+        // CARREGAR BOTS
+        // ─────────────────────────────────────────────
+
+        async function loadBots() {
+            try {
+                const result = await window.electronAPI.botList();
+                if (result.success && result.bots) {
+                    const allBots = result.bots;
+
+                    botSelect.innerHTML = '<option value="">Selecione um bot...</option>';
+
+                    if (allBots.length === 0) {
+                        botSelect.innerHTML += '<option value="" disabled>Nenhum bot cadastrado</option>';
+                        kanbanContainer.innerHTML = '<div class="loading">⚠️ Nenhum bot cadastrado. Crie um bot na página inicial.</div>';
+                        return;
+                    }
+
+                    allBots.forEach(bot => {
+                        const option = document.createElement('option');
+                        option.value = bot.id;
+                        const statusIcon = bot.status === 'connected' ? '🟢' : bot.status === 'connecting' ? '🟡' : '⚫';
+                        option.textContent = `🤖 ${bot.name} ${statusIcon}`;
+                        botSelect.appendChild(option);
+                    });
+                } else {
+                    console.error('Erro ao carregar bots:', result);
+                    kanbanContainer.innerHTML = '<div class="loading">Erro ao carregar lista de bots</div>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar bots:', error);
+                kanbanContainer.innerHTML = '<div class="loading">Erro ao carregar bots</div>';
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        // CARREGAR SINALIZADORES DO BOT
+        // ─────────────────────────────────────────────
+
+        async function loadSinalizadores(botId) {
+            if (!botId) {
+                kanbanContainer.innerHTML = '<div class="loading">Selecione um bot para visualizar os sinalizadores</div>';
+                return;
+            }
+
+            kanbanContainer.innerHTML = '<div class="loading">Carregando sinalizadores...</div>';
+
+            try {
+                let bot = null;
+
+                if (window.electronAPI.botGetData) {
+                    try {
+                        bot = await window.electronAPI.botGetData(botId);
+                        console.log('Bot via botGetData:', bot);
+                    } catch (err) {
+                        console.warn('botGetData falhou:', err);
+                    }
+                }
+
+                if (!bot || !bot.id) {
+                    const listResult = await window.electronAPI.botList();
+                    if (listResult.success && listResult.bots) {
+                        bot = listResult.bots.find(b => b.id === botId);
+                        console.log('Bot via botList:', bot);
+                    }
+                }
+
+                if (bot && bot.id) {
+                    renderKanban(bot);
+                } else {
+                    kanbanContainer.innerHTML = '<div class="loading">❌ Erro ao carregar dados do bot. Verifique se o bot existe.</div>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar sinalizadores:', error);
+                kanbanContainer.innerHTML = '<div class="loading">Erro ao carregar dados: ' + error.message + '</div>';
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        // ATUALIZAÇÃO INSTANTÂNEA
+        // ─────────────────────────────────────────────
+
+        function setupRealtimeSinalizadores() {
+            if (window.electronAPI.onClienteSinalizado) {
+                window.electronAPI.onClienteSinalizado((event, data) => {
+                    const { botId, cliente } = data;
+
+                    console.log(`📡 Evento recebido: Cliente ${cliente.nome} -> ${cliente.novoSinalizador}`);
+
+                    if (botId === currentBotId) {
+                        adicionarClienteNaColuna(cliente.novoSinalizador, {
+                            numero: cliente.numero,
+                            nome: cliente.nome,
+                            ultimaMensagem: cliente.mensagem || 'Nova mensagem',
+                            sinalizadores: [cliente.novoSinalizador]
+                        });
+
+                        mostrarNotificacao(`🏷️ ${cliente.nome} foi movido para "${cliente.novoSinalizador}"`);
+                    }
+                });
+            } else {
+                console.warn('⚠️ Evento onClienteSinalizado não disponível.');
+            }
+
+            if (window.electronAPI.onClienteAtualizado) {
+                window.electronAPI.onClienteAtualizado((event, data) => {
+                    const { botId, numero } = data;
+                    if (botId === currentBotId) {
+                        loadSinalizadores(currentBotId);
+                        mostrarNotificacao(`🔄 Lista de clientes atualizada`, 'info');
+                    }
+                });
+            }
+        }
+
+        function adicionarClienteNaColuna(sinalizadorLabel, cliente) {
+            const colunas = document.querySelectorAll('.column');
+            let colunaDestino = null;
+
+            for (const coluna of colunas) {
+                const header = coluna.querySelector('.column-header h3');
+                if (header && header.textContent.replace(/^⋮⋮\s*/, '') === sinalizadorLabel) {
+                    colunaDestino = coluna;
+                    break;
+                }
+            }
+
+            if (!colunaDestino) {
+                console.warn(`⚠️ Coluna "${sinalizadorLabel}" não encontrada`);
+                return;
+            }
+
+            const contentDivDestino = colunaDestino.querySelector('.column-content');
+
+            const jaExisteAqui = Array.from(contentDivDestino.querySelectorAll('.client-card'))
+                .find(card => card.querySelector('.client-number')?.textContent.includes(cliente.numero));
+
+            if (jaExisteAqui) {
+                console.log(`Cliente ${cliente.nome} já existe na coluna "${sinalizadorLabel}"`);
+                return;
+            }
+
+            const todasColunas = document.querySelectorAll('.column');
+            for (const coluna of todasColunas) {
+                const header = coluna.querySelector('.column-header h3');
+                if (header && header.textContent.replace(/^⋮⋮\s*/, '') !== sinalizadorLabel) {
+                    const contentDiv = coluna.querySelector('.column-content');
+                    const cardExistente = Array.from(contentDiv.querySelectorAll('.client-card'))
+                        .find(card => card.querySelector('.client-number')?.textContent.includes(cliente.numero));
+
+                    if (cardExistente) {
+                        cardExistente.remove();
+
+                        const countDiv = coluna.querySelector('.column-count');
+                        const novoCount = contentDiv.children.length;
+                        countDiv.textContent = `${novoCount} cliente(s)`;
+
+                        if (novoCount === 0) {
+                            const emptyMsg = document.createElement('div');
+                            emptyMsg.className = 'empty-column';
+                            emptyMsg.textContent = 'Nenhum cliente';
+                            emptyMsg.style.padding = '20px';
+                            emptyMsg.style.textAlign = 'center';
+                            emptyMsg.style.color = '#999';
+                            contentDiv.appendChild(emptyMsg);
+                        }
+
+                        console.log(`🗑️ Cliente ${cliente.nome} removido da coluna "${header.textContent.replace(/^⋮⋮\s*/, '')}"`);
+                    }
+                }
+            }
+
+            const card = createClientCard(cliente);
+            const emptyMsg = contentDivDestino.querySelector('.empty-column');
+            if (emptyMsg) emptyMsg.remove();
+
+            card.style.opacity = '0';
+            card.style.transform = 'translateX(-20px)';
+            contentDivDestino.appendChild(card);
+
+            setTimeout(() => {
+                card.style.transition = 'all 0.3s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateX(0)';
+                card.style.background = '#e8f5e9';
+                setTimeout(() => { card.style.background = ''; }, 1000);
+            }, 10);
+
+            const countDivDestino = colunaDestino.querySelector('.column-count');
+            countDivDestino.textContent = `${contentDivDestino.children.length} cliente(s)`;
+
+            console.log(`✅ Cliente ${cliente.nome} movido para "${sinalizadorLabel}"`);
+        }
+
+        // ─────────────────────────────────────────────
+        // RENDERIZAR KANBAN
+        // ─────────────────────────────────────────────
+
+        function renderKanban(bot) {
+            let sinalizadores = [];
+
+            if (bot.rules && bot.rules.sinalizadores && Array.isArray(bot.rules.sinalizadores)) {
+                sinalizadores = bot.rules.sinalizadores;
+            } else if (bot.sinalizadores && Array.isArray(bot.sinalizadores)) {
+                sinalizadores = bot.sinalizadores;
+            }
+
+            console.log('Sinalizadores encontrados:', sinalizadores);
+
+            if (sinalizadores.length === 0) {
+                kanbanContainer.innerHTML = `
+            <div class="loading">
+                ⚠️ Nenhum sinalizador configurado para este bot.<br>
+                <small>Configure sinalizadores nas regras do bot na página inicial.</small>
+            </div>
+        `;
+                return;
+            }
+
+            const clientes = bot.clientes || {};
+            console.log('Clientes encontrados:', Object.keys(clientes).length);
+
+            const clientesPorSinalizador = {};
+
+            // Inicializar colunas
+            sinalizadores.forEach(s => {
+                clientesPorSinalizador[s.label] = [];
+            });
+
+            // Distribuir clientes
+            Object.entries(clientes).forEach(([numero, dados]) => {
+                const sinalizadoresCliente = dados.sinalizadores || [];
+
+                console.log(`Cliente ${dados.nome || numero} tem sinalizadores:`, sinalizadoresCliente);
+
+                if (sinalizadoresCliente.length != 0) {
+                    sinalizadoresCliente.forEach(sinalizador => {
+                        if (clientesPorSinalizador[sinalizador]) {
+                            clientesPorSinalizador[sinalizador].push({ numero, ...dados });
+                        } else {
+                            if (!clientesPorSinalizador['Outros']) {
+                                clientesPorSinalizador['Outros'] = [];
+                            }
+                            clientesPorSinalizador['Outros'].push({ numero, ...dados });
+                        }
+                    });
+                }
+            });
+
+            // Obter lista de sinalizadores na ordem correta
+            let sinalizadoresLabels = Object.keys(clientesPorSinalizador);
+            sinalizadoresLabels = carregarOrdemSalva(sinalizadoresLabels, bot);
+
+            const board = document.createElement('div');
+            board.className = 'kanban-board';
+            board.style.display = 'flex';
+            board.style.gap = '20px';
+            board.style.overflowX = 'auto';
+            board.style.padding = '20px';
+
+            sinalizadoresLabels.forEach(sinalizador => {
+                const clientesLista = clientesPorSinalizador[sinalizador] || [];
+                const column = createColumn(sinalizador, clientesLista);
+                board.appendChild(column);
+            });
+
+            kanbanContainer.innerHTML = '';
+            kanbanContainer.appendChild(board);
+
+            // Ativar drag and drop nas colunas
+            makeColumnsDraggable();
+        }
+
+        function createColumn(sinalizador, clientes) {
+            const column = document.createElement('div');
+            column.className = 'column';
+            column.style.minWidth = '300px';
+            column.style.backgroundColor = '#f5f5f5';
+            column.style.borderRadius = '8px';
+            column.style.padding = '10px';
+
+            // 🔥 Guardar o sinalizador original como atributo (sem o ⋮⋮)
+            column.setAttribute('data-sinalizador', sinalizador);
+
+            column.innerHTML = `
+        <div class="column-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 2px solid #ddd;">
+            <h3 style="margin: 0;">⋮⋮ ${escapeHtml(sinalizador)}</h3>
+            <div class="column-count" style="background: #e0e0e0; padding: 2px 8px; border-radius: 12px; font-size: 12px;">${clientes.length} cliente(s)</div>
+        </div>
+        <div class="column-content" style="min-height: 400px; max-height: 600px; overflow-y: auto;">
+            ${clientes.length === 0 ? '<div class="empty-column" style="padding: 20px; text-align: center; color: #999;">Nenhum cliente</div>' : ''}
+        </div>
+    `;
+
+            const contentDiv = column.querySelector('.column-content');
+
+            clientes.forEach(cliente => {
+                const card = createClientCard(cliente);
+                contentDiv.appendChild(card);
+            });
+
+            return column;
+        }
+
+        function createClientCard(cliente) {
+            const card = document.createElement('div');
+            card.className = 'client-card';
+            card.style.backgroundColor = 'white';
+            card.style.borderRadius = '8px';
+            card.style.padding = '12px';
+            card.style.marginBottom = '10px';
+            card.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+            card.style.cursor = 'pointer';
+            card.style.transition = 'all 0.2s ease';
+
+            card.onmouseenter = () => {
+                card.style.transform = 'translateX(4px)';
+                card.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+            };
+            card.onmouseleave = () => {
+                card.style.transform = 'translateX(0)';
+                card.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+            };
+
+            const nome = cliente.nome || cliente.numero || 'Desconhecido';
+            const numero = cliente.numero || '';
+            const ultimaMsg = cliente.ultimaMensagem || 'Sem mensagens';
+            const tags = cliente.sinalizadores || [];
+
+            card.innerHTML = `
+        <div class="client-name" style="font-weight: bold; margin-bottom: 5px; display: flex; justify-content: space-between;">
+            <span>👤 ${escapeHtml(nome)}</span>
+            ${cliente.status === 'online' ? '<span style="color: #4CAF50;">🟢 Online</span>' : ''}
+        </div>
+        <div class="client-number" style="display: none;">${escapeHtml(numero)}</div>
+        <div class="client-last-message" style="font-size: 12px; color: #333; margin-bottom: 8px; padding: 4px; background: #f9f9f9; border-radius: 4px;">💬 "${escapeHtml(ultimaMsg.substring(0, 100))}"</div>
+        <div class="client-tags" style="display: flex; gap: 5px; flex-wrap: wrap;">
+            ${tags.map(tag => `<span style="background: #e3f2fd; color: #1976d2; padding: 2px 6px; border-radius: 4px; font-size: 10px;">#${escapeHtml(tag)}</span>`).join('')}
+        </div>
+    `;
+
+            card.onclick = async (e) => {
+                e.stopPropagation();
+                const sinalizadorAtual = card.closest('.column').getAttribute('data-sinalizador') ||
+                    card.closest('.column').querySelector('.column-header h3').textContent.replace(/^⋮⋮\s*/, '');
+
+                if (await confirmar(`Quer remover "${nome}" do sinalizador "${sinalizadorAtual}"?`)) {
+                    if (window.electronAPI.botRemoverSinalizador) {
+                        window.electronAPI.botRemoverSinalizador(currentBotId, numero, sinalizadorAtual);
+                    }
+
+                    card.remove();
+
+                    const countDiv = card.closest('.column').querySelector('.column-count');
+                    const novoCount = card.closest('.column-content').children.length;
+                    countDiv.textContent = `${novoCount} cliente(s)`;
+
+                    if (novoCount === 0) {
+                        const emptyMsg = document.createElement('div');
+                        emptyMsg.className = 'empty-column';
+                        emptyMsg.style.padding = '20px';
+                        emptyMsg.style.textAlign = 'center';
+                        emptyMsg.style.color = '#999';
+                        emptyMsg.textContent = 'Nenhum cliente';
+                        card.closest('.column-content').appendChild(emptyMsg);
+                    }
+
+                    mostrarNotificacao(`✅ ${nome} removido do sinalizador "${sinalizadorAtual}"`);
+                }
+            };
+
+            return card;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ─────────────────────────────────────────────
+        // EVENTOS
+        // ─────────────────────────────────────────────
+
+        botSelect.addEventListener('change', (e) => {
+            currentBotId = e.target.value;
+            if (currentBotId) {
+                loadSinalizadores(currentBotId);
+            } else {
+                kanbanContainer.innerHTML = '<div class="loading">Selecione um bot para visualizar os sinalizadores</div>';
+            }
+        });
+
+        // ─────────────────────────────────────────────
+        // INIT
+        // ─────────────────────────────────────────────
+
+        async function init() {
+            await loadBots();
+            setupRealtimeSinalizadores();
+        }
+
+        init();
+        console.log('Página de Sinalizadores carregada com suporte a tempo real e drag and drop!');
+    </script>
+</body>
+
+</html>

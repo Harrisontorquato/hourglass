@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Atualização Disponível</title>
+    <style>
+ * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: #f8fafc;
+    overflow: auto;
+}
+
+.update-container {
+    max-width: 500px;
+    margin: 0 auto;
+    background: white;
+    min-height: 100vh;
+    border-left: 1px solid #eef2f6;
+    border-right: 1px solid #eef2f6;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.02);
+}
+
+/* Header */
+.update-header {
+    background: white;
+    padding: 30px 25px;
+    color: #1e293b;
+    border-bottom: 1px solid #eef2f6;
+    position: relative;
+    overflow: hidden;
+}
+
+.update-header::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: #f97316;
+}
+
+.update-header h2 {
+    font-size: 24px;
+    margin-bottom: 8px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: #1e293b;
+}
+
+.update-header p {
+    font-size: 14px;
+    color: #475569;
+}
+
+/* Content */
+.update-content {
+    padding: 25px;
+}
+
+.version-info {
+    background: #fff7ed;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-left: 3px solid #f97316;
+    border-right: none;
+    border-top: 1px solid #ffedd5;
+    border-bottom: 1px solid #ffedd5;
+}
+
+.version-info strong {
+    color: #f97316;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.version-label {
+    color: #475569;
+    font-size: 13px;
+    margin-bottom: 5px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.release-notes {
+    background: #fafcff;
+    padding: 15px;
+    margin-bottom: 25px;
+    border: 1px solid #e2e8f0;
+}
+
+.release-notes h4 {
+    color: #1e293b;
+    margin-bottom: 12px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.release-notes-content {
+    font-size: 13px;
+    color: #475569;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+/* Buttons */
+.button-group {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: #f97316;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #ea580c;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+}
+
+.btn-secondary {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.btn-secondary:hover {
+    background: #e2e8f0;
+    transform: translateY(-1px);
+}
+
+/* Progress section */
+.progress-section {
+    margin-top: 20px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 40px;
+    background-color: #f1f5f9;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid #e2e8f0;
+}
+
+.progress-fill {
+    width: 0%;
+    height: 100%;
+    background: #f97316;
+    transition: width 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.progress-text {
+    text-align: center;
+    margin-top: 12px;
+    font-size: 13px;
+    color: #475569;
+    font-weight: 500;
+}
+
+.download-complete {
+    background: #fff7ed;
+    border: 1px solid #ffedd5;
+    padding: 15px;
+    margin-top: 20px;
+    text-align: center;
+}
+
+.download-complete p {
+    color: #f97316;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+hr {
+    margin: 20px 0;
+    border: none;
+    border-top: 1px solid #e2e8f0;
+}
+
+/* Remove all rounded corners */
+.update-container,
+.update-header,
+.version-info,
+.release-notes,
+button,
+.progress-bar,
+.progress-fill,
+.download-complete {
+    border-radius: 0;
+}
+
+/* Additional styling for scrollbar in release notes */
+.release-notes-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.release-notes-content::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.release-notes-content::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+}
+
+.release-notes-content::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Smooth animations for buttons */
+.btn-primary,
+.btn-secondary {
+    transition: all 0.2s ease;
+}
+
+.btn-primary:active,
+.btn-secondary:active {
+    transform: translateY(0);
+}
+
+/* Focus states for accessibility */
+button:focus-visible {
+    outline: 2px solid #f97316;
+    outline-offset: 2px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 500px) {
+    .update-container {
+        border-left: none;
+        border-right: none;
+    }
+    
+    .button-group {
+        flex-direction: column;
+    }
+    
+    .update-header {
+        padding: 25px 20px;
+    }
+    
+    .update-content {
+        padding: 20px;
+    }
+}
+    </style>
+</head>
+<body>
+    <div class="update-container">
+        <div class="update-header">
+            <h2>📢 Atualização Disponível!</h2>
+            <p>Uma nova versão está pronta para ser instalada</p>
+        </div>
+        
+        <div class="update-content">
+            <div id="initialContent">
+                <div class="version-info">
+                    <div class="version-label">Nova versão disponível:</div>
+                    <strong id="newVersion">-</strong>
+                </div>
+                
+                <div class="release-notes">
+                    <h4>📝 Novidades desta versão:</h4>
+                    <div id="releaseNotesContent" class="release-notes-content">Carregando...</div>
+                </div>
+                
+                <div class="button-group">
+                    <button id="downloadBtn" class="btn-primary">📥 Baixar Agora</button>
+                    <button id="cancelBtn" class="btn-secondary">Cancelar</button>
+                </div>
+            </div>
+
+            <div id="downloadContent" style="display: none;">
+                <div class="progress-section" id="progressSection">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill">0%</div>
+                    </div>
+                    <div class="progress-text" id="progressText">Iniciando download...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const newVersionSpan = document.getElementById('newVersion');
+        const releaseNotesDiv = document.getElementById('releaseNotesContent');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const initialContent = document.getElementById('initialContent');
+        const downloadContent = document.getElementById('downloadContent');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+
+        let updateInfo = null;
+
+        // Recebe os dados da atualização
+        window.electronAPI.onUpdateWindowData((data) => {
+            updateInfo = data;
+            newVersionSpan.textContent = data.version;
+            releaseNotesDiv.textContent = data.releaseNotes || 'Sem notas de release disponíveis.';
+        });
+
+        // Download
+        downloadBtn.onclick = () => {
+            if (updateInfo) {
+                // Muda para a view de download
+                initialContent.style.display = 'none';
+                downloadContent.style.display = 'block';
+                
+                // Inicia o download
+                window.electronAPI.downloadUpdate();
+            }
+        };
+
+        // Cancelar - fecha a janela
+        cancelBtn.onclick = () => {
+            window.electronAPI.closeUpdateWindow();
+        };
+
+        // Atualiza o progresso do download
+        window.electronAPI.onUpdateProgress((progress) => {
+            if (progress.percent) {
+                const percent = Math.round(progress.percent);
+                progressFill.style.width = `${percent}%`;
+                progressFill.textContent = `${percent}%`;
+                progressText.textContent = `Baixando... ${percent}% concluído`;
+            }
+        });
+
+        window.electronAPI.onUpdateCompleted(() => {
+    progressFill.style.width = '100%';
+    progressFill.textContent = '100%';
+    progressFill.style.background = 'linear-gradient(90deg, #4CAF50, #2e7d32)';
+    
+    // Contagem regressiva visual
+    let seconds = 3;
+    progressText.innerHTML = `✅ Concluído! Instalando em ${seconds}s...`;
+    
+    const countdown = setInterval(() => {
+        seconds--;
+        if (seconds <= 0) {
+            clearInterval(countdown);
+            progressText.innerHTML = '🚀 Instalando atualização...';
+        } else {
+            progressText.innerHTML = `✅ Concluído! Instalando em ${seconds}s...`;
+        }
+    }, 1000);
+});
+        // Erro no download
+        window.electronAPI.onUpdateError((error) => {
+            progressText.innerHTML = `❌ Erro no download: ${error.message}`;
+            progressFill.style.background = '#f44336';
+            
+            setTimeout(() => {
+                window.electronAPI.closeUpdateWindow();
+            }, 3000);
+        });
+    </script>
+</body>
+</html>

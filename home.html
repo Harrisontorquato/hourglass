@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Hourglass App - Home</title>
+    <link rel="stylesheet" href="css/home.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <div class="header">
+            <h1>Hourglass</h1>
+            <div class="subtitle">Gerenciador de Bots Whatsapp</div>
+            <div class="user-info" id="userInfo">Carregando...
+            </div>
+            <!-- Dentro do formulário de criar bot -->
+        </div>
+
+        <div class="bot-manager">
+            <div id="botsList" class="bots-list">
+            </div>
+            <div class="create-bot">
+                <h3>Criar Novo Bot</h3>
+
+                <div class="form-group">
+                    <label>Nome do Bot</label>
+                    <input type="text" id="botName" placeholder="Ex: Bot Suporte, Bot Vendas...">
+                </div>
+                <div class="form-group">
+                    <label>Regras do Bot</label>
+                    <!-- Primeira mensagem (fixa, sempre visível) -->
+                    <div class="toggle-switch" style="margin: 10px 0; display: flex; align-items: center; gap: 10px;">
+                        <label class="switch">
+                            <input type="checkbox" id="firstMessageDiarioToggle">
+                            <span class="slider"></span>
+                        </label>
+                        <label for="firstMessageDiarioToggle" style="cursor: pointer; color: #333;">
+                            Desligado o Bot vai mandar a mensagem de boas vindas para clientes que interagir após 2 horas
+                            da ultima interação.
+                            Ligado somente 1x a cada vez que tiver conectado
+                        </label>
+                    </div>
+                    <div class="rule-item rule-first-message">
+                        <textarea id="firstMessage" placeholder="Mensagem inicial" rows="3"></textarea>
+                        <input type="text" id="firstMessageSinalizador" placeholder="Sinalizador (ex: em_atendimento)"
+                            class="rule-sinalizador">
+                    </div>
+
+                    <!-- Linhas de palavras-chave -->
+                    <div id="rulesList" class="rules-container"></div>
+
+                    <button type="button" class="add-rule-btn" id="addRuleBtn">
+                        + Adicionar Palavra
+                    </button>
+                </div>
+
+                <button class="btn-primary" id="createBotBtn">Criar Bot</button>
+                <button class="btn-primary" id="cancelEditBtn" style="display:none;">Cancelar Edição</button>
+            </div>
+        </div>
+
+        <div class="version-badge" id="versionBadge">
+            Versão <span id="versionNumber">carregando...</span>
+        </div>
+    </div>
+    <script type="module" src="js/home.js"></script>
+</body>
+
+</html>

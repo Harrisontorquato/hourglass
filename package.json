@@ -1,0 +1,81 @@
+{
+  "name": "hourglass",
+  "version": "1.2.0",
+  "description": "Gerencia o Whatsapp com foco em agilidade no atendimento",
+  "main": "js/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "w": "electron-builder --win",
+    "build-linux": "electron-builder --linux",
+    "build-mac": "electron-builder --mac",
+    "publish": "electron-builder --publish always"
+  },
+  "author": "Harrison Torquato",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^27.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "baileys": "^6.17.16",
+    "electron-log": "^5.4.3",
+    "electron-updater": "^6.8.3",
+    "pino": "^10.3.1",
+    "qrcode": "^1.5.4"
+  },
+  "build": {
+    "appId": "com.harrisontorquato.hourglass",
+    "productName": "Hourglass",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "docs/politica_privacidade.txt",
+      "docs/termos.txt",
+      "css/sinalizadores.css",
+      "css/index.css",
+      "css/carregamento.css",
+      "css/home.css",
+      "js/alert.js",
+      "js/bot-manager.js",
+      "js/firebase.js",
+      "js/home.js",
+      "carregamento.html",
+      "termos.json",
+      "home.html",
+      "index.html",
+      "js/main.js",
+      "js/preload.js",
+      "js/preload-update.js",
+      "js/update-manager.js",
+      "sinalizadores.html",
+      "update-window.html"
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "Harrisontorquato",
+      "repo": "hourglass",
+      "private": false
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "art/favicon.ico",
+      "publish": [
+        "github"
+      ]
+    },
+    "linux": {
+      "target": "AppImage",
+      "publish": [
+        "github"
+      ]
+    },
+    "mac": {
+      "target": "dmg",
+      "publish": [
+        "github"
+      ]
+    }
+  }
+}

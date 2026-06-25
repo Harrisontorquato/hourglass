@@ -1,0 +1,9 @@
+{
+    "versao_termos": "1.0",
+    "data_atualizacao": "2026-06-07",
+    "data_vigencia": "2026-06-07",
+    "versao_app_minima": "1.2.0",
+    "motivo_atualizacao": "Versão inicial dos Termos de Uso",
+    "arquivo_termos": "./docs/termos.txt",
+    "arquivo_privacidade": "./docs/politica_privacidade.txt"
+}

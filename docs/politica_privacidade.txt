@@ -1,0 +1,123 @@
+           POLÍTICA DE PRIVACIDADE – HOURGLASS
+
+Última atualização: 07/06/2026
+
+           1. INTRODUÇÃO
+
+Esta Política de Privacidade descreve como o Hourglass coleta, utiliza, armazena e protege informações relacionadas aos seus usuários.
+
+Ao utilizar o Software, o Usuário concorda com as práticas descritas nesta Política.
+
+
+            2. DADOS COLETADOS
+
+O Hourglass poderá coletar e processar os seguintes dados:
+
+           Dados de Conta
+
+* endereço de e-mail;
+* identificador único da conta (UID);
+* registros de autenticação;
+* registros de verificação de e-mail;
+* registros de recuperação de senha.
+
+           Dados de Aceite
+
+* data de aceite dos Termos de Uso;
+* versão dos Termos aceitos;
+* identificador da conta;
+* registros de concordância.
+
+           Dados Analíticos
+
+Poderão ser coletadas informações estatísticas de utilização do Software por meio de ferramentas analíticas fornecidas por terceiros, incluindo o Google Analytics.
+
+
+           3. DADOS ARMAZENADOS LOCALMENTE
+
+Atualmente, os seguintes dados operacionais são armazenados localmente no dispositivo do Usuário:
+
+* sessões de autenticação do WhatsApp;
+* contatos;
+* números de telefone;
+* nomes de contatos;
+* classificações e sinalizadores;
+* configurações de automação;
+* mensagens processadas pelas funcionalidades do Software.
+
+Esses dados permanecem sob controle do Usuário e não são enviados automaticamente aos servidores do Desenvolvedor, salvo quando expressamente informado por funcionalidades futuras.
+
+
+           4. FINALIDADE DO TRATAMENTO
+
+Os dados coletados são utilizados para:
+
+* autenticação;
+* segurança da conta;
+* recuperação de acesso;
+* prevenção de fraude;
+* melhoria do Software;
+* análise de desempenho;
+* cumprimento de obrigações legais.
+
+
+           5. COMPARTILHAMENTO DE DADOS
+
+Os dados poderão ser processados por prestadores de serviço necessários ao funcionamento do Software, incluindo:
+
+* Google Firebase Authentication;
+* Google Firestore;
+* Google Analytics.
+
+O compartilhamento ocorrerá apenas na medida necessária para a prestação dos serviços.
+
+
+           6. RETENÇÃO DOS DADOS
+
+Os dados serão mantidos pelo período necessário para:
+
+* execução dos serviços;
+* cumprimento de obrigações legais;
+* exercício regular de direitos.
+
+Após esse período, poderão ser excluídos ou anonimizados.
+
+
+           7. SEGURANÇA
+
+São adotadas medidas técnicas razoáveis para proteção das informações.
+
+Entretanto, nenhum sistema é completamente imune a falhas ou acessos não autorizados.
+
+O Usuário também é responsável por proteger suas credenciais de acesso, que fica na máquina do mesmo e também a segurança do seu dispositivo móvel utilizado.
+
+
+           8. DIREITOS DO TITULAR
+
+Nos termos da LGPD, o Usuário poderá solicitar:
+
+* confirmação da existência de tratamento;
+* acesso aos dados;
+* correção de dados incorretos;
+* anonimização quando aplicável;
+* eliminação de dados quando legalmente possível;
+* informações sobre compartilhamento.
+
+
+           9. ALTERAÇÕES DESTA POLÍTICA
+
+Esta Política poderá ser atualizada periodicamente.
+
+Alterações relevantes poderão exigir nova manifestação de concordância do Usuário.
+
+
+           10. FUTURAS FUNCIONALIDADES
+
+O Hourglass poderá futuramente disponibilizar funcionalidades baseadas em infraestrutura em nuvem.
+
+Caso isso ocorra, esta Política será atualizada para refletir eventuais mudanças no tratamento dos dados.
+
+
+           11. CONTATO
+
+Solicitações relacionadas à privacidade poderão ser encaminhadas pelos canais oficiais de suporte disponibilizados pelo Desenvolvedor.

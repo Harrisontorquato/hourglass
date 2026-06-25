@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carregando - Gestor Houglass</title>
+    <link rel="stylesheet" href="css/carregamento.css">
+</head>
+
+<body>
+    <div class="loading-container">
+        <div class="loading-card">
+            <div class="loading-title">Gestor Houglass</div>
+            <div class="loading-subtitle">Verificando autenticação...</div>
+
+            <div class="hourglassBackground">
+                <div class="hourglassContainer">
+                    <div class="hourglassCurves"></div>
+                    <div class="hourglassCapTop"></div>
+                    <div class="hourglassGlassTop"></div>
+                    <div class="hourglassSand"></div>
+                    <div class="hourglassSandStream"></div>
+                    <div class="hourglassCapBottom"></div>
+                    <div class="hourglassGlass"></div>
+                </div>
+            </div>
+
+            <div class="status-message" id="statusMessage">
+                Conectando ao servidor...
+            </div>
+            <div class="custom-spinner" id="spinner"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, analytics, onAuthStateChanged } from "./js/firebase.js";
+        import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+        const db = getFirestore();
+
+        const statusMessageElement = document.getElementById('statusMessage');
+        const spinnerElement = document.getElementById('spinner');
+        const subtitleElement = document.querySelector('.loading-subtitle');
+        const loadingContainer = document.querySelector('.loading-container');
+        let termosConfig = null;
+        let termosTexto = "";
+        let privacidadeTexto = "";
+
+        async function carregarTermos() {
+            const response = await fetch('./termos.json');
+            termosConfig = await response.json();
+
+            const termosResponse = await fetch(termosConfig.arquivo_termos);
+            termosTexto = await termosResponse.text();
+
+            const privacidadeResponse = await fetch(termosConfig.arquivo_privacidade);
+            privacidadeTexto = await privacidadeResponse.text();
+
+            console.log("✅ Termos e Políticas carregados");
+        }
+
+        function updateStatus(message, isError = false) {
+            statusMessageElement.textContent = message;
+            if (isError) {
+                statusMessageElement.style.background = 'rgba(239, 68, 68, 0.1)';
+                statusMessageElement.style.borderColor = 'rgba(239, 68, 68, 0.2)';
+                statusMessageElement.style.color = 'var(--red-soft)';
+            } else {
+                statusMessageElement.style.background = 'var(--bg-soft)';
+                statusMessageElement.style.borderColor = 'var(--border-light)';
+                statusMessageElement.style.color = 'var(--text-secondary)';
+            }
+        }
+
+        function updateSubtitle(message) {
+            if (subtitleElement) subtitleElement.textContent = message;
+        }
+
+        function hideSpinner() {
+            if (spinnerElement) spinnerElement.style.display = 'none';
+        }
+
+        function redirectWithDelay(url, delay = 1500) {
+            updateSubtitle(`Redirecionando${url === 'home.html' ? ' para o dashboard' : ' para o login'}...`);
+            updateStatus(`Aguarde, você será redirecionado em breve`);
+            setTimeout(() => { window.location.href = url; }, delay);
+        }
+
+        async function checkTermsAndPrivacyAccepted(userId) {
+            try {
+                const termsDoc = await getDoc(doc(db, "termos_aceitos", userId));
+
+                if (!termsDoc.exists()) {
+                    console.log("📄 Documento de termos não encontrado");
+                    return { terms: false, privacy: false };
+                }
+
+                const data = termsDoc.data();
+                
+                const termsAccepted = data.aceito === true && 
+                                    data.versao_termos === termosConfig?.versao_termos;
+                
+                const privacyAccepted = data.privacidade_aceita === true && 
+                                       data.versao_privacidade === termosConfig?.versao_termos;
+
+                console.log(`✅ Verificação: Termos=${termsAccepted}, Privacidade=${privacyAccepted}`);
+                
+                return { terms: termsAccepted, privacy: privacyAccepted };
+            } catch (error) {
+                console.error("Erro ao verificar termos/privacidade:", error);
+                return { terms: false, privacy: false };
+            }
+        }
+
+        async function acceptTermsAndPrivacy(userId, userEmail) {
+            try {
+                await setDoc(doc(db, "termos_aceitos", userId), {
+                    aceito: true,
+                    privacidade_aceita: true,
+                    timestamp: serverTimestamp(),
+                    data_aceite_termos: new Date().toISOString(),
+                    data_aceite_privacidade: new Date().toISOString(),
+                    email: userEmail,
+                    versao_termos: termosConfig?.versao_termos ?? "1.0",
+                    versao_privacidade: termosConfig?.versao_termos ?? "1.0",
+                    ip: localStorage.getItem('user_ip') || 'não registrado',
+                    user_agent: navigator.userAgent
+                });
+                console.log("✅ Termos e Política de Privacidade aceitos com sucesso!");
+                return true;
+            } catch (error) {
+                console.error("Erro ao registrar aceitação:", error);
+                return false;
+            }
+        }
+
+        async function acceptPrivacyOnly(userId, userEmail) {
+            try {
+                const docRef = doc(db, "termos_aceitos", userId);
+                const docSnap = await getDoc(docRef);
+                
+                if (docSnap.exists()) {
+                    await setDoc(docRef, {
+                        ...docSnap.data(),
+                        privacidade_aceita: true,
+                        data_aceite_privacidade: new Date().toISOString(),
+                        versao_privacidade: termosConfig?.versao_termos ?? "1.0"
+                    }, { merge: true });
+                } else {
+                    await setDoc(docRef, {
+                        aceito: true,
+                        privacidade_aceita: true,
+                        timestamp: serverTimestamp(),
+                        data_aceite_privacidade: new Date().toISOString(),
+                        email: userEmail,
+                        versao_privacidade: termosConfig?.versao_termos ?? "1.0"
+                    });
+                }
+                console.log("✅ Política de Privacidade aceita com sucesso!");
+                return true;
+            } catch (error) {
+                console.error("Erro ao registrar aceitação da privacidade:", error);
+                return false;
+            }
+        }
+
+        function showTermsModal(user, onAccept, onDecline) {
+            loadingContainer.style.display = 'none';
+
+            const overlay = document.createElement('div');
+            overlay.className = 'terms-overlay';
+            overlay.innerHTML = `
+                <div class="terms-modal">
+                    <div class="step-indicator">
+                        <div class="step active">1</div>
+                        <div class="step">2</div>
+                    </div>
+                    <h2>📋 Termos de Uso</h2>
+                    <div class="terms-content">
+                        <div style="white-space: pre-wrap; font-size: 13px; line-height: 1.6;">
+                            ${termosTexto || 'Erro ao carregar os termos de uso. Tente novamente.'}
+                        </div>
+                    </div>
+                    <div class="terms-actions">
+                        <button class="btn-decline" id="declineTerms">Recusar</button>
+                        <button class="btn-accept" id="acceptTerms">Aceitar Termos</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(overlay);
+
+            document.getElementById('acceptTerms').addEventListener('click', async () => {
+                updateSubtitle("Termos aceitos! Verificando política de privacidade...");
+                updateStatus("Termos aceitos com sucesso!");
+
+                const success = await onAccept();
+                if (success) {
+                    overlay.remove();
+                    // Após aceitar os termos, mostra o modal de privacidade
+                    showPrivacyModal(user);
+                } else {
+                    updateStatus("Erro ao registrar aceitação dos termos. Tente novamente.", true);
+                    setTimeout(() => {
+                        overlay.remove();
+                        loadingContainer.style.display = 'flex';
+                        window.location.href = 'index.html';
+                    }, 2000);
+                }
+            });
+
+            document.getElementById('declineTerms').addEventListener('click', () => {
+                updateSubtitle("Você recusou os termos de uso");
+                updateStatus("Para usar o aplicativo, você precisa aceitar os termos.", true);
+                setTimeout(() => {
+                    overlay.remove();
+                    loadingContainer.style.display = 'flex';
+                    window.location.href = 'index.html';
+                }, 2000);
+            });
+        }
+
+        function showPrivacyModal(user) {
+            const overlay = document.createElement('div');
+            overlay.className = 'privacy-overlay';
+            overlay.innerHTML = `
+                <div class="privacy-modal">
+                    <div class="step-indicator">
+                        <div class="step completed">✓</div>
+                        <div class="step active">2</div>
+                    </div>
+                    <h2>🔒 Política de Privacidade</h2>
+                    <div class="privacy-content">
+                        <div style="white-space: pre-wrap; font-size: 13px; line-height: 1.6;">
+                            ${privacidadeTexto || 'Erro ao carregar a política de privacidade. Tente novamente.'}
+                        </div>
+                    </div>
+                    <div class="privacy-actions">
+                        <button class="btn-decline" id="declinePrivacy">Recusar</button>
+                        <button class="btn-accept" id="acceptPrivacy">Aceitar Política de Privacidade</button>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(overlay);
+
+            document.getElementById('acceptPrivacy').addEventListener('click', async () => {
+                updateSubtitle("Registrando aceitação da política de privacidade...");
+                updateStatus("Salvando sua concordância com a política de privacidade...");
+
+                const success = await acceptPrivacyOnly(user.uid, user.email);
+                if (success) {
+                    overlay.remove();
+                    loadingContainer.style.display = 'flex';
+                    updateStatus("Política de privacidade aceita! Redirecionando...");
+                    updateSubtitle("Aceitação registrada com sucesso!");
+                    setTimeout(() => {
+                        window.location.href = 'home.html';
+                    }, 1500);
+                } else {
+                    updateStatus("Erro ao registrar aceitação da política de privacidade. Tente novamente.", true);
+                    setTimeout(() => {
+                        overlay.remove();
+                        loadingContainer.style.display = 'flex';
+                        window.location.href = 'index.html';
+                    }, 2000);
+                }
+            });
+
+            document.getElementById('declinePrivacy').addEventListener('click', () => {
+                updateSubtitle("Você recusou a política de privacidade");
+                updateStatus("Para usar o aplicativo, você precisa aceitar a política de privacidade.", true);
+                setTimeout(() => {
+                    overlay.remove();
+                    loadingContainer.style.display = 'flex';
+                    window.location.href = 'index.html';
+                }, 2000);
+            });
+        }
+
+        // Início do fluxo de verificação
+        updateStatus("Verificando credenciais...");
+        updateSubtitle("Verificando autenticação...");
+
+        const timeoutId = setTimeout(() => {
+            updateStatus("Tempo limite excedido. Redirecionando para o login...", true);
+            updateSubtitle("Timeout - Redirecionando");
+            hideSpinner();
+            setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+        }, 8000);
+
+        onAuthStateChanged(auth, async (user) => {
+            clearTimeout(timeoutId);
+
+            if (user) {
+                console.log("✅ Usuário autenticado:", user.email);
+                updateStatus(`Bem-vindo, ${user.email || 'usuário'}!`);
+                updateSubtitle(`Olá, ${user.email?.split('@')[0] || 'usuário'}! Verificando documentação...`);
+
+                try {
+                    // Carrega os termos primeiro
+                    await carregarTermos();
+                    
+                    const { terms: hasAcceptedTerms, privacy: hasAcceptedPrivacy } = await checkTermsAndPrivacyAccepted(user.uid);
+
+                    console.log(`Status: Termos=${hasAcceptedTerms}, Privacidade=${hasAcceptedPrivacy}`);
+
+                    // Caso 1: Já aceitou tudo
+                    if (hasAcceptedTerms && hasAcceptedPrivacy) {
+                        console.log("✅ Usuário já aceitou todos os documentos");
+                        updateStatus("Documentação completa. Carregando dashboard...");
+                        updateSubtitle("Redirecionando para o dashboard...");
+                        hideSpinner();
+                        redirectWithDelay('home.html', 1500);
+                    }
+                    // Caso 2: Aceitou os termos mas não a privacidade
+                    else if (hasAcceptedTerms && !hasAcceptedPrivacy) {
+                        console.log("⚠️ Usuário aceitou os termos mas não a política de privacidade");
+                        updateStatus("Você precisa aceitar a política de privacidade atualizada");
+                        updateSubtitle("Aceite a política de privacidade para continuar");
+                        hideSpinner();
+                        showPrivacyModal(user);
+                    }
+                    // Caso 3: Não aceitou nada
+                    else if (!hasAcceptedTerms && !hasAcceptedPrivacy) {
+                        console.log("⚠️ Usuário não aceitou nenhum documento");
+                        updateStatus("Você precisa aceitar os termos de uso e política de privacidade");
+                        updateSubtitle("Aceite os documentos para acessar o sistema");
+                        hideSpinner();
+                        showTermsModal(
+                            user,
+                            async () => {
+                                return await acceptTermsAndPrivacy(user.uid, user.email);
+                            },
+                            () => {
+                                console.log("❌ Usuário recusou os termos");
+                                window.location.href = 'index.html';
+                            }
+                        );
+                    }
+                } catch (error) {
+                    console.error("Erro durante verificação:", error);
+                    updateStatus("Erro ao verificar documentação", true);
+                    updateSubtitle("Tente novamente mais tarde");
+                    hideSpinner();
+                    setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+                }
+            } else {
+                console.log("❌ Usuário não autenticado");
+                updateStatus("Nenhuma sessão encontrada");
+                updateSubtitle("Faça login para continuar");
+                hideSpinner();
+                redirectWithDelay('index.html', 1500);
+            }
+        }, (error) => {
+            console.error("Erro ao verificar autenticação:", error);
+            clearTimeout(timeoutId);
+            updateStatus("Erro ao conectar ao servidor", true);
+            updateSubtitle("Verifique sua conexão");
+            hideSpinner();
+            setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+        });
+
+        console.log("📱 Página de carregamento inicializada (v2 - com fluxo duplo)");
+    </script>
+</body>
+
+</html>
